@@ -18,6 +18,7 @@ func main() {
 	ebiten.SetWindowSize(w*tileInit, h*tileInit)
 	ebiten.SetWindowTitle("NetWalk – Go Edition")
 	ebiten.SetWindowResizable(true)
+	ebiten.SetFPSMode(ebiten.FPSModeVsyncOffMinimum) // 让 Draw 频率跟随 TPS
 	ebiten.SetMaxTPS(fps)
 
 	//b := game.NewBoard(w, h)
