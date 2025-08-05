@@ -54,8 +54,14 @@ func (g *GameView) Layout(outsideW, outsideH int) (int, int) {
 	return wantW, wantH
 }
 
+var frame int
+
 // Update：每次点击仅旋转一次，依据当前 tile 大小计算格坐标
 func (g *GameView) Update() error {
+	frame++
+	if frame == 1 { // 窗口已出现，改 FPSMode 不会卡住
+		ebiten.SetFPSMode(ebiten.FPSModeVsyncOffMinimum)
+	}
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) && !g.solvedOnce {
 		x, y := ebiten.CursorPosition()
 		tilePx := min(g.screenWidth/g.board.W, g.screenHeight/g.board.H)
