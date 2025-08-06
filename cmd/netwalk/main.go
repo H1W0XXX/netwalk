@@ -13,7 +13,7 @@ func main() {
 	const (
 		w, h     = 10, 9
 		tileInit = 32
-		fps      = 10
+		fps      = 60
 	)
 	ebiten.SetWindowSize(w*tileInit, h*tileInit)
 	ebiten.SetWindowTitle("NetWalk – Go Edition")

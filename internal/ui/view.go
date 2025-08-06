@@ -14,16 +14,19 @@ type GameView struct {
 	board                     *game.Board
 	solvedOnce                bool
 	screenWidth, screenHeight int // 随窗口实时更新
+
+	offscreen *ebiten.Image
+	dirty     bool
 }
 
 // ---------------------- 构造 -------------------------
 
 func NewGameView(b *game.Board) *GameView {
-	// 初始尺寸 = main.go 里 SetWindowSize 设置的值
 	return &GameView{
 		board:        b,
 		screenWidth:  b.W * 32,
 		screenHeight: b.H * 32,
+		dirty:        true, // 一开始先渲染一次
 	}
 }
 
@@ -69,6 +72,7 @@ func (g *GameView) Update() error {
 		if game.In(tx, ty, g.board.W, g.board.H) {
 			g.board.Rotate(tx, ty)
 			g.solvedOnce = g.board.Solved()
+			g.dirty = true
 		}
 	}
 	return nil
@@ -76,32 +80,44 @@ func (g *GameView) Update() error {
 
 // Draw：按实时 tile 大小把整盘缩放绘制
 func (g *GameView) Draw(screen *ebiten.Image) {
+	// 1) 先算出当前 tile 大小
 	tilePx := min(g.screenWidth/g.board.W, g.screenHeight/g.board.H)
 
-	// 1) 背景网格
-	gridCol := color.RGBA{192, 192, 192, 255}
-	for x := 1; x < g.board.W; x++ {
-		ebitenutil.DrawLine(screen,
-			float64(x*tilePx), 0,
-			float64(x*tilePx), float64(g.board.H*tilePx),
-			gridCol)
-	}
-	for y := 1; y < g.board.H; y++ {
-		ebitenutil.DrawLine(screen,
-			0, float64(y*tilePx),
-			float64(g.board.W*tilePx), float64(y*tilePx),
-			gridCol)
-	}
+	// 2) 如果 offscreen 还没初始化，或是“脏”了，就完整渲染一次到离屏图
+	wantW, wantH := g.board.W*tilePx, g.board.H*tilePx
+	if g.offscreen == nil ||
+		g.offscreen.Bounds().Dx() != wantW ||
+		g.offscreen.Bounds().Dy() != wantH ||
+		g.dirty {
 
-	// 2) 计算哪些格子被电源连通
-	reach := g.board.Reachable()
-
-	// 3) 绘制每个方块
-	for y := 0; y < g.board.H; y++ {
-		for x := 0; x < g.board.W; x++ {
-			drawTile(screen, g.board, reach, x, y, tilePx)
+		img := ebiten.NewImage(wantW, wantH)
+		// 在 img 上画网格 + 线路 + 电源/终端，复用你原来的 drawTile 逻辑
+		reach := g.board.Reachable()
+		gridCol := color.RGBA{192, 192, 192, 255}
+		for x := 1; x < g.board.W; x++ {
+			ebitenutil.DrawLine(img,
+				float64(x*tilePx), 0,
+				float64(x*tilePx), float64(wantH),
+				gridCol)
 		}
+		for y := 1; y < g.board.H; y++ {
+			ebitenutil.DrawLine(img,
+				0, float64(y*tilePx),
+				float64(wantW), float64(y*tilePx),
+				gridCol)
+		}
+		for y := 0; y < g.board.H; y++ {
+			for x := 0; x < g.board.W; x++ {
+				drawTile(img, g.board, reach, x, y, tilePx)
+			}
+		}
+
+		g.offscreen = img
+		g.dirty = false
 	}
+
+	// 3) 把离屏图一口气贴到屏幕上
+	screen.DrawImage(g.offscreen, nil)
 }
 
 // ------------ 渲染单块 ------------
