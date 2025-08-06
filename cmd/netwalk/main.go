@@ -31,4 +31,4 @@ func main() {
 	}
 }
 
-// go build -ldflags="-s -w" -gcflags="all=-trimpath=${PWD}" -asmflags="all=-trimpath=${PWD}" .\cmd\netwalk\main.go
+// go build -ldflags="-s -w" -gcflags="all=-trimpath=${PWD}" -asmflags="all=-trimpath=${PWD}" -o netwalk.exe .\cmd\netwalk\main.go

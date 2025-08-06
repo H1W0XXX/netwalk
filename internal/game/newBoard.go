@@ -234,28 +234,12 @@ func (b *Board) Shuffle() {
 }
 
 func (b *Board) Solved() bool {
-	seen := make([]bool, len(b.Grid))
-	var dfs func(x, y int)
-	dfs = func(x, y int) {
-		i := idx(b.W, x, y)
-		if seen[i] {
-			return
-		}
-		seen[i] = true
-		for _, d := range allDirs {
-			if b.hasConn(x, y, d) {
-				nx, ny := step(x, y, d)
-				if in(nx, ny, b.W, b.H) && b.hasConn(nx, ny, opposite(d)) {
-					dfs(nx, ny)
-				}
+	reach := b.Reachable()
+	for y := 0; y < b.H; y++ {
+		for x := 0; x < b.W; x++ {
+			if b.IsEndpoint(x, y) && !reach[idx(b.W, x, y)] {
+				return false
 			}
-		}
-	}
-	dfs(b.rtX, b.rtY)
-	dfs(b.rtX, b.rtY+1)
-	for i, t := range b.Grid {
-		if t.Conn != 0 && !seen[i] {
-			return false
 		}
 	}
 	return true
